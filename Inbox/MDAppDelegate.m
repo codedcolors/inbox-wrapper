@@ -19,4 +19,10 @@
 	[self.webView.mainFrame loadRequest:request];
 }
 
+- (WebView *)webView:(WebView *)sender createWebViewWithRequest:(NSURLRequest *)request
+{
+    [[sender mainFrame] loadRequest:request];
+    return sender;
+}
+
 @end
