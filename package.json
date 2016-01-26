@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "main": "main.js",
   "devDependencies": {
+    "bower": "^1.7.2",
     "lodash": "^4.0.1"
   }
 }

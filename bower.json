@@ -1,0 +1,24 @@
+{
+  "name": "inbox-wrapper",
+  "description": "Native Google Inbox",
+  "main": "main.js",
+  "authors": [
+    "Eric Lee <eric@codedcolors.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/codedcolors/inbox-wrapper",
+  "moduleType": [],
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "ng-marviluz": "ng-material#~0.0.4",
+    "angular": "~1.4.9",
+    "angular-messages": "ng-messages#*"
+  }
+}
