@@ -1,0 +1,8 @@
+{
+  "name": "inbox-wrapper",
+  "version": "0.1.0",
+  "main": "main.js",
+  "devDependencies": {
+    "lodash": "^4.0.1"
+  }
+}

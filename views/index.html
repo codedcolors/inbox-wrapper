@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    #sidebar-content {
+      float:left;
+      background-color: #333;
+      display: block;
+    }
+    #main-content {
+      float:left;
+    }
+    #content-frame {
+      width: 100%;
+      height: 100%;
+    }
+    .accounts {
+      padding: 0;
+      margin: 0;
+    }
+    .accounts li {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    .account-item {
+      cursor:pointer;
+      width: 100%;
+      height: 80px;
+      background-color: #ccc;
+    }
+  </style>
+
+  <body ng-app="inboxWrapper" ng-controller="inboxWrapperController">
+
+    <div id="sidebar-content">
+      <ul class="accounts">
+        <li class="account-item" ng-repeat="account in accounts" ng-click="selectAccount(account);">User: #{{account.id}}</li>
+        <li ng-click="addAccount()">Add account</li>
+        <li ng-click="logOut()">Log out</li>
+      </ul>
+    </div>
+
+    <div id="main-content">
+      <webview id="content-frame" ng-src="{{frameUrl}}"></webview>
+    </div>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.4.9/angular.js"></script>
+    <script type="text/javascript">
+      angular.module('inboxWrapper', [])
+        .config(function($sceProvider) {
+          $sceProvider.enabled(false);
+        })
+        .controller('inboxWrapperController', function ($scope, $window, $document, $interval) {
+          var ipc = require("electron").ipcRenderer;
+          var sidebar = angular.element(document.querySelector('#sidebar-content'));
+          var content = angular.element(document.querySelector('#main-content'));
+          var webFrame = document.querySelector('#content-frame');
+
+          $scope.frameUrl = 'https://inbox.google.com';
+          $scope.accounts = [];
+
+          $scope.addAccount = function() {
+            $scope.frameUrl = 'https://accounts.google.com/AddSession?continue=https://inbox.google.com/';
+          }
+
+          $scope.selectAccount = function(account) {
+            $scope.frameUrl = account.url;
+          }
+
+          $scope.logOut = function() {
+            $scope.frameUrl = 'https://accounts.google.com/Logout?continue=https://inbox.google.com';
+            $scope.accounts = [];
+            ipc.send('logout');
+          }
+
+          $interval(function() {
+            var url = webFrame.src;
+            if (url.indexOf('https://inbox.google.com') == 0) {
+              console.log("Is inbox URL", url);
+              var uid;
+              var res;
+              var components = url.split('/');
+              if (isInt(components[4])) {
+                uid = components[4];
+              } else {
+                uid = 0;
+              }
+              console.log("Inbox id: ", uid);
+              if (getUserById(uid) === null) {
+                console.log("Adding user")
+                var user = {
+                  'id': uid,
+                  'url': url
+                };
+                $scope.accounts.push(user);
+                ipc.send('addUser', user);
+              }
+            }
+          }, 1000)
+
+
+          ipc.on('loadToFrame', function(event, url) {
+            $scope.frameUrl = url;
+          });
+
+          ipc.on('populateUsers', function(event, users) {
+            $scope.accounts = users;
+          });
+
+          webFrame.addEventListener('new-window', function(event) {
+            console.log("New window event", event);
+            ipc.send('openLink', event.url);
+          });
+
+          webFrame.addEventListener('loadstop', function(event) {
+            if (event.url.indexOf('inbox.google.com') > -1) {
+              var uid = window.location.pathname.match(/^\/u\/(\d+)/);
+              if (getUserById(uid) !== null) {
+                var user = {
+                  'id': uid,
+                  'url': event.url
+                };
+                $scope.accounts.push(user);
+                ipc.send('addUser', user);
+              }
+            }
+          });
+
+          var isInt = function(value) {
+            return !isNaN(value) &&
+                   parseInt(Number(value)) == value &&
+                   !isNaN(parseInt(value, 10));
+          };
+
+          var getUserById = function(id) {
+            for (var i = 0; i < $scope.accounts.length; i++) {
+              if ($scope.accounts[i].id == id) {
+                return $scope.accounts[i];
+              }
+            }
+            return null;
+          }
+
+          var handleResize = function(event) {
+            var h = $window.innerHeight;
+            var w = $window.innerWidth;
+            sidebar.css('width', '200px');
+            content.css('width', (w - 200 + 'px'));
+            sidebar.css('height', h + 'px');
+            content.css('height', h + 'px');
+          }
+          $document.on('resize', handleResize);
+          ipc.on('handleResize', handleResize);
+          handleResize();
+
+
+        });
+    </script>
+
+  </body>
+</html>
